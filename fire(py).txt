@@ -1,0 +1,54 @@
+!pip install cvzone
+!pip install pyserial
+!pip install Ultralytics
+!pip install opencv-python
+
+
+
+
+
+import cvzone
+from ultralytics import YOLO
+import cv2
+import math
+import serial 
+
+
+cap = cv2.VideoCapture(r"C:\Users\EVO TECH\Downloads\Video\videoplayback.mp4")  
+
+ser = serial.Serial('COM9', 9600)
+
+model = YOLO(r"D:\studey\sec 2\AI\2.6\Fire-Detection-with-Alarm-System-master\fire.pt")
+
+
+
+while True:
+    ret, frame = cap.read()
+    frame = cv2.resize(frame, (640, 480))
+    result = model(frame, stream=True)
+
+    for info in result:
+        boxes = info.boxes
+        for box in boxes:
+            confidence = box.conf[0]
+            confidence = math.ceil(confidence * 100)
+            
+            if confidence > 60:
+                x1, y1, x2, y2 = box.xyxy[0]
+                x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 5)
+                cvzone.putTextRect(frame, f'Fire {confidence}%', [x1 + 8, y1 + 100],
+                                   scale=1.5, thickness=2)
+
+                ser.write(b'1')
+                
+           else:
+               
+                ser.write(b'0')
+                
+
+    cv2.imshow('fire', frame)
+    if cv2.waitKey(1) == ord('q'):
+        break
+cap.release()
+cv2.destroyAllWindows()
